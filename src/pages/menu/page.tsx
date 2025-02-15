@@ -93,35 +93,29 @@ const MenuPage = () => {
         </h2>
       </div>
 
-      {eventos.length > 0 ? (
-        <div className="row-start-2 row-end-3 overflow-y-auto px-4">
-          <Modal
-            title="Agregar plato"
-            isVisible={isOpen}
-            onAccept={handleOnSubmit}
-            onCancel={closeModal}
-          >
-            <FormAssignMenu form={form} setForm={setForm} platos={platos} />
-          </Modal>
-          <section className="space-y-4">
-            {eventos
-              .sort((a, b) => compareAsc(a.fecha, b.fecha))
-              .map((evento) => {
-                return (
-                  <MenuContainer
-                    key={evento.id}
-                    evento={evento}
-                    setMenu={setMenu}
-                  />
-                );
-              })}
-          </section>
-        </div>
-      ) : (
-        <div className="text-center mx-auto font-bold text-xl">
-          Sin comidas asignadas
-        </div>
-      )}
+      <div className="row-start-2 row-end-3 overflow-y-auto px-4">
+        <Modal
+          title="Agregar plato"
+          isVisible={isOpen}
+          onAccept={handleOnSubmit}
+          onCancel={closeModal}
+        >
+          <FormAssignMenu form={form} setForm={setForm} platos={platos} />
+        </Modal>
+        <section className="space-y-4">
+          {eventos
+            .sort((a, b) => compareAsc(a.fecha, b.fecha))
+            .map((evento) => {
+              return (
+                <MenuContainer
+                  key={evento.id}
+                  evento={evento}
+                  setMenu={setMenu}
+                />
+              );
+            })}
+        </section>
+      </div>
 
       <div className="row-start-3 row-end-4 px-4 py-4 flex gap-2 bg-gray-100">
         <button
