@@ -6,7 +6,17 @@ import { toast } from "sonner";
 import IngredientList from "./components/IngredientList";
 
 import FormCreateIngredient from "@/components/Form/FormCreateIngredient";
-import Modal from "@/components/Modal/Modal";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 import MainLayout from "@/components/Layouts/MainLayout";
 
@@ -18,7 +28,6 @@ const IngredientPage = () => {
   const { createIngredient, findAllIngredient } = useIngredientApi();
 
   const [form, setForm] = useState(INITIAL_FORM_DATA);
-  const [isOpen, setIsOpen] = useState(false);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ["ingredients"],
@@ -36,14 +45,6 @@ const IngredientPage = () => {
     },
   });
 
-  const openModal = () => {
-    setIsOpen(true);
-  };
-
-  const closeModal = () => {
-    setIsOpen(false);
-  };
-
   const handleOnSubmit = async () => {
     createIngredientMutation.mutate({ name: form.name });
     setForm(INITIAL_FORM_DATA);
@@ -55,25 +56,31 @@ const IngredientPage = () => {
   return (
     <MainLayout>
       <div className="mx-4">
-        <div className="flex justify-between">
-          <h1 className="text-4xl font-bold mb-5">Alacena</h1>
-          <button onClick={openModal}>
-            <CirclePlus />
-          </button>
-        </div>
+        <Card className="w-full my-2">
+          <CardContent className="flex items-center justify-between p-2">
+            <h1 className="text-4xl font-bold">Alacena</h1>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="cursor-pointer">
+                  <CirclePlus />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Crear Plato</DialogTitle>
+                </DialogHeader>
+                <FormCreateIngredient form={form} setForm={setForm} />
+                <DialogFooter>
+                  <Button onClick={handleOnSubmit}>Crear</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
         {data && data.ingredients && (
           <IngredientList ingredients={data.ingredients} />
         )}
       </div>
-
-      <Modal
-        title="Agregar Ingrediente"
-        isVisible={isOpen}
-        onAccept={handleOnSubmit}
-        onCancel={closeModal}
-      >
-        <FormCreateIngredient form={form} setForm={setForm} />
-      </Modal>
     </MainLayout>
   );
 };

@@ -20,9 +20,15 @@ const useIngredientApi = () => {
     return data;
   };
 
+  const removeIngredient = async (id: number): Promise<ResponseType> => {
+    const { data } = await axiosClient.delete<ResponseType>(`${ROUTE}/${id}`);
+    return data;
+  };
+
   return {
     findAllIngredient,
     createIngredient,
+    removeIngredient,
   };
 };
 
