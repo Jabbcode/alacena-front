@@ -1,42 +1,40 @@
 import PlatosContainer from "./PlatosContainer";
 
 import { GroupedMenu } from "@/interfaces/enums";
-import { IEvento } from "@/interfaces/menu";
+import { IEvent } from "@/interfaces/menu.interface";
 
 interface MenuContainerProps {
-  evento: IEvento;
-  setMenu: React.Dispatch<React.SetStateAction<IEvento>>;
+  event: IEvent;
 }
 
-const MenuContainer = ({ evento, setMenu }: MenuContainerProps) => {
+const MenuContainer = ({ event }: MenuContainerProps) => {
   const groupedMenu: GroupedMenu = {};
 
   // Agrupar platos por categoría
-  evento.menuPlatos?.forEach((mp) => {
-    if (!groupedMenu[mp.categoria]) {
-      groupedMenu[mp.categoria] = [];
+  event.menuPlates?.forEach((mp) => {
+    if (!groupedMenu[mp.category]) {
+      groupedMenu[mp.category] = [];
     }
-    groupedMenu[mp.categoria]?.push(mp.plato);
+    groupedMenu[mp.category]?.push(mp.plate);
   });
 
   // Convertir groupedMenu a categorizedMenu
   const categorizedMenu = Object.entries(groupedMenu).map(
-    ([categoria, platos]) => ({ categoria, platos })
+    ([category, plates]) => ({ category, plates })
   );
 
   return (
     <article className="p-4 bg-white rounded-lg mb-5 flex flex-col gap-2">
       {categorizedMenu.length > 0 ? (
         <ul className="ml-6 space-y-2">
-          {categorizedMenu.map(({ categoria, platos }) => {
+          {categorizedMenu.map(({ category, plates }) => {
             return (
-              <li key={categoria} className="mb-6">
-                <strong className="block text-gray-600">{categoria}: </strong>
+              <li key={category} className="mb-6">
+                <strong className="block text-gray-600">{category}: </strong>
                 <PlatosContainer
-                  platos={platos}
-                  categoria={categoria}
-                  menu={evento}
-                  setMenu={setMenu}
+                  plates={plates}
+                  category={category}
+                  menu={event}
                 />
               </li>
             );

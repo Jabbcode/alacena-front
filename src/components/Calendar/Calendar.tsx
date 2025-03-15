@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   format,
   startOfMonth,
@@ -9,40 +10,24 @@ import {
   subMonths,
   getDay,
   isToday,
-  subDays,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { findByFilterEventService } from "@/api/menu";
 
-import "./styles.css";
+import useEventApi from "@/api/event.service";
+
 import { capitalizeFirstLetter } from "@/helpers";
 
+import "./styles.css";
+
 interface ICalendarProps {
-  getDayOfMonths?: (fecha: Date) => void;
+  getDayOfMonths?: (date: Date) => void;
 }
 
 const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
+  const { findByFilterEvent } = useEventApi();
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [daysWithEvents, setDaysWithEvents] = useState<Date[]>([]); // Estado para días con eventos
-
-  // Cargar días con eventos
-  useEffect(() => {
-    const fetchDaysWithEvents = async () => {
-      const eventDays: Date[] = [];
-      for (const day of daysInMonth) {
-        const hasEvent = await findByFilterEventService({ fecha: day });
-        if (hasEvent.length > 0) {
-          eventDays.push(day);
-        }
-      }
-      //TODO: Ajustar ya que no deberia restarse dias
-      setDaysWithEvents(eventDays.map((day) => subDays(day, 1))); // Guardar los días con eventos en el estado
-    };
-
-    fetchDaysWithEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentMonth]); // Actualizar cuando cambie el mes
 
   // Generar los días del mes actual
   const daysInMonth = eachDayOfInterval({
@@ -50,21 +35,51 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
     end: endOfMonth(currentMonth),
   });
 
-  // Obtener el día de la semana en que comienza el mes (0 = domingo, 6 = sábado)
+  // Obtener el día de la semana en que comienza el mes
   const startDay = getDay(startOfMonth(currentMonth));
-
-  // Crear un array de días vacíos al inicio del calendario
   const blankDays = Array(startDay).fill(null);
 
   // Navegar al mes anterior
-  const previousMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1));
-  };
+  const previousMonth = () => setCurrentMonth(subMonths(currentMonth, 1));
 
   // Navegar al mes siguiente
-  const nextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1));
-  };
+  const nextMonth = () => setCurrentMonth(addMonths(currentMonth, 1));
+
+  // Consulta de días con eventos usando TanStack Query
+  const monthKey = format(currentMonth, "yyyy-MM");
+  const {
+    data: eventsData,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["events", monthKey], // Clave única para este mes
+    queryFn: async () => {
+      const startDate = startOfMonth(currentMonth);
+      const endDate = endOfMonth(currentMonth);
+
+      const response = await findByFilterEvent({
+        startDate: new Date(format(startDate, "yyyy-MM-dd")),
+        endDate: new Date(format(endDate, "yyyy-MM-dd")),
+      });
+
+      return response.map((event) => new Date(event.date)); // Devolver fechas con eventos
+    },
+    staleTime: 5 * 60 * 1000, // Mantener en caché durante 5 minutos
+    refetchOnWindowFocus: false, // Evitar refetch cuando el usuario cambie de pestaña
+  });
+
+  // Convertir los días con eventos en un Set para mejorar la búsqueda
+  const daysWithEventsSet = new Set(
+    eventsData?.map((day) => format(day, "yyyy-MM-dd")) || []
+  );
+
+  if (isLoading) {
+    return <div>Cargando...</div>;
+  }
+
+  if (isError) {
+    return <div>Error al cargar los eventos</div>;
+  }
 
   return (
     <div className="calendar">
@@ -96,10 +111,7 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
       <div className="days">
         {/* Días vacíos al inicio */}
         {blankDays.map((_, index) => (
-          <div key={index} className="day empty">
-            {" "}
-            {/* Espacio vacío */}
-          </div>
+          <div key={index} className="day empty" />
         ))}
 
         {/* Días del mes actual */}
@@ -109,11 +121,7 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
             className={`day ${
               isSameMonth(day, currentMonth) ? "current-month" : "other-month"
             } ${isToday(day) ? "today" : ""} ${
-              daysWithEvents.some(
-                (eventDay) =>
-                  isSameMonth(eventDay, day) &&
-                  format(eventDay, "d") === format(day, "d")
-              )
+              daysWithEventsSet.has(format(day, "yyyy-MM-dd"))
                 ? "with-event"
                 : ""
             }`}

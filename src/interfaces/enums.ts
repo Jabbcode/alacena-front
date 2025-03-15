@@ -5,5 +5,13 @@ export enum MealType {
 }
 
 export type GroupedMenu = {
-  [key in MealType]?: { id?: number; nombre: string }[];
+  [key in MealType]?: { id?: number; name: string }[];
 };
+
+export enum UnitType {
+  KG = "kg",
+  GR = "gr",
+  L = "L",
+  ML = "ml",
+  PZA = "pza",
+}

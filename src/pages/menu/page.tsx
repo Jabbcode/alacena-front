@@ -1,63 +1,75 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { compareAsc, format as formatDateFns } from "date-fns";
+import { es } from "date-fns/locale";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import MenuContainer from "./components/MenuContainer";
 
-import { findByFilterEventService, assignPlatoToMenuService } from "@/api/menu";
+import FormAssignMenu from "@/components/Form/FormAssignMenu";
+import Modal from "@/components/Modal/Modal";
 
-import { IEvento } from "@/interfaces/menu";
-import { format } from "@/helpers/dateHelpers";
-import Modal from "@/components/Modal";
-import { findAllPlatosService } from "@/api/plato";
-import { IPlato } from "@/interfaces/plato";
-import FormAssignMenu from "./components/FormAssignMenu";
-import { es } from "date-fns/locale";
-import { capitalizeFirstLetter } from "@/helpers";
+import useEventApi from "@/api/event.service";
+import usePlateApi from "@/api/plate.service";
+
+import { capitalizeFirstLetter, format } from "@/helpers";
 
 const MenuPage = () => {
-  const params = useParams<{ fecha: string }>();
+  const { assignPlateToMenu, findByFilterEvent } = useEventApi();
+  const { createPlate } = usePlateApi();
+  const queryCLient = useQueryClient();
+  const params = useParams<{ date: string }>();
   const navigate = useNavigate();
 
   const INITIAL_FORM_DATA = {
     mealType: "",
-    platoId: 0,
-    fecha: params.fecha! as unknown as Date,
+    plateId: 0,
+    date: params.date! as unknown as Date,
+    name: "",
   };
 
   const [form, setForm] = useState(INITIAL_FORM_DATA);
-  const [eventos, setEventos] = useState<IEvento[]>([]);
-  const [platos, setPlatos] = useState<IPlato[]>([]);
-  const [menu, setMenu] = useState<IEvento>({
-    fecha: new Date(),
-    menuPlatos: [],
-  });
   const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    getEvent(params.fecha as unknown as Date);
-  }, [params, menu]);
+  const {
+    data: events,
+    isLoading: isLoadingEvents,
+    error: errorEvents,
+  } = useQuery({
+    queryKey: ["events"],
+    queryFn: () =>
+      findByFilterEvent({
+        date: params.date as unknown as Date,
+      }),
+  });
 
-  useEffect(() => {
-    getAllPlatos();
-  }, []);
+  const createPlateMutation = useMutation({
+    mutationFn: createPlate,
+    onSuccess: () => {
+      setForm(INITIAL_FORM_DATA);
+      queryCLient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const getAllPlatos = async () => {
-    const data = await findAllPlatosService();
-    setPlatos(data);
-  };
-
-  const getEvent = async (fecha: Date) => {
-    try {
-      const data = await findByFilterEventService({ fecha });
-      setEventos(data);
-    } catch (error) {
-      console.log(error);
-    }
-  };
+  const assignPlate = useMutation({
+    mutationFn: assignPlateToMenu,
+    onSuccess: () => {
+      setIsOpen(false);
+      setForm(INITIAL_FORM_DATA);
+      toast.success("Menu asignado correctamente");
+      queryCLient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   const handleNavigate = () => {
-    navigate("/events");
+    navigate("/eventos");
   };
 
   const openModal = () => {
@@ -69,10 +81,30 @@ const MenuPage = () => {
   };
 
   const handleOnSubmit = async () => {
-    const data = await assignPlatoToMenuService(form);
-    setMenu(data);
-    setIsOpen(false);
+    if (form.name !== "") {
+      createPlateMutation.mutate(
+        { name: form.name },
+        {
+          onSuccess: (response) => {
+            assignPlate.mutate({ ...form, plateId: response.id! });
+            setIsOpen(false);
+          },
+          onError: (error) => {
+            toast.error(error.message);
+          },
+        }
+      );
+    } else {
+      assignPlate.mutate(form, {
+        onError: (error) => {
+          toast.error(error.message);
+        },
+      });
+    }
   };
+
+  if (isLoadingEvents) return <p>Loading...</p>;
+  if (errorEvents) return <p>Error: {errorEvents.message}</p>;
 
   return (
     <div className="grid grid-rows-[auto_1fr_auto] h-screen">
@@ -82,12 +114,12 @@ const MenuPage = () => {
         </h1>
         <h2 className="text-center font-medium text-gray-600 text-base">
           {capitalizeFirstLetter(
-            formatDateFns(new Date(params.fecha as unknown as Date), "eeee", {
+            formatDateFns(new Date(params.date as unknown as Date), "eeee", {
               locale: es,
             })
           )}{" "}
           -{" "}
-          {format(new Date(new Date(params.fecha as unknown as Date)), "es", {
+          {format(new Date(new Date(params.date as unknown as Date)), "es", {
             dateStyle: "long",
           })}
         </h2>
@@ -100,20 +132,15 @@ const MenuPage = () => {
           onAccept={handleOnSubmit}
           onCancel={closeModal}
         >
-          <FormAssignMenu form={form} setForm={setForm} platos={platos} />
+          <FormAssignMenu form={form} setForm={setForm} />
         </Modal>
         <section className="space-y-4">
-          {eventos
-            .sort((a, b) => compareAsc(a.fecha, b.fecha))
-            .map((evento) => {
-              return (
-                <MenuContainer
-                  key={evento.id}
-                  evento={evento}
-                  setMenu={setMenu}
-                />
-              );
-            })}
+          {events &&
+            events
+              .sort((a, b) => compareAsc(a.date, b.date))
+              .map((event) => {
+                return <MenuContainer key={event.id} event={event} />;
+              })}
         </section>
       </div>
 

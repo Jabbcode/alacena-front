@@ -1,8 +1,11 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import EventsPage from "@/pages/events/page";
 import HeroPage from "@/pages/hero/page";
+import IngredientPage from "@/pages/ingredient/page";
 import MenuPage from "@/pages/menu/page";
-import EventPage from "@/pages/events/page";
+import PlatesPage from "@/pages/plates/page";
+import IngredientContainer from "@/pages/plates/components/IngredientContainer";
 
 const router = createBrowserRouter([
   {
@@ -10,12 +13,26 @@ const router = createBrowserRouter([
     element: <HeroPage />,
   },
   {
-    path: "/events",
-    element: <EventPage />,
+    path: "eventos",
+    element: <EventsPage />,
   },
   {
-    path: "/menu/:fecha",
+    path: "menu/:date",
     element: <MenuPage />,
+  },
+  {
+    path: "almacen",
+    element: <IngredientPage />,
+  },
+  {
+    path: "platos",
+    element: <PlatesPage />,
+    children: [
+      {
+        path: ":id",
+        element: <IngredientContainer />,
+      },
+    ],
   },
 ]);
 

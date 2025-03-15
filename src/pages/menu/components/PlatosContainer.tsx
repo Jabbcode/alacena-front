@@ -1,41 +1,48 @@
-import { removePlatoFromMenuService } from "@/api/menu";
-import { IEvento } from "@/interfaces/menu";
-import { IPlato } from "@/interfaces/plato";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CircleMinus } from "lucide-react";
+import { toast } from "sonner";
+
+import useEventApi from "@/api/event.service";
+
+import { IEvent } from "@/interfaces/menu.interface";
+import { IPlate } from "@/interfaces/plate.interface";
 
 interface PlatosContainerProps {
-  menu: IEvento;
-  categoria: string;
-  platos: IPlato[];
-  setMenu: React.Dispatch<React.SetStateAction<IEvento>>;
+  menu: IEvent;
+  category: string;
+  plates: IPlate[];
 }
 
-const PlatosContainer = ({
-  menu,
-  categoria,
-  platos,
-  setMenu,
-}: PlatosContainerProps) => {
-  const deletePlato = async (
-    mealType: string,
-    menuId: number,
-    platoId: number
-  ) => {
-    const data = await removePlatoFromMenuService({
-      mealType,
-      menuId,
-      platoId,
-    });
-    setMenu(data);
-  };
+const PlatosContainer = ({ menu, category, plates }: PlatosContainerProps) => {
+  const queryCLient = useQueryClient();
+  const { removePlateFromMenu } = useEventApi();
+
+  const deletePlate = useMutation({
+    mutationFn: removePlateFromMenu,
+    onSuccess: () => {
+      toast.info("Menu removido correctamente");
+      queryCLient.invalidateQueries();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
   return (
     <ul className="list-disc list-inside ml-4 space-y-1">
-      {platos.map((plato) => {
+      {plates.map((plate) => {
         return (
-          <li key={plato.id} className="text-gray-700 flex gap-2">
-            {plato.nombre}
-            <div onClick={() => deletePlato(categoria, menu.id!, plato.id!)}>
+          <li key={plate.id} className="text-gray-700 flex gap-2">
+            {plate.name}
+            <div
+              onClick={() =>
+                deletePlate.mutate({
+                  mealType: category,
+                  menuId: menu.id!,
+                  plateId: plate.id!,
+                })
+              }
+            >
               <CircleMinus />
             </div>
           </li>
