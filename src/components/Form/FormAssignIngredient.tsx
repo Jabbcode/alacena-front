@@ -24,7 +24,7 @@ const FormAssignIngrediente = ({ form, setForm }: FormAssignMenuProps) => {
 
   const { data } = useQuery({
     queryKey: ["ingredients"],
-    queryFn: findAllIngredient,
+    queryFn: () => findAllIngredient({ page: 1, limit: 100 }),
     staleTime: 5 * 60 * 1000, // Mantener en caché durante 5 minutos
     refetchOnWindowFocus: false, // Evitar refetch cuando el usuario cambie de pestaña
   });
