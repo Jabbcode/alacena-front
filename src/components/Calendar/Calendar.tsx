@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   format,
@@ -16,7 +16,9 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import useEventApi from "@/api/event.service";
 
+import { IEvent } from "@/interfaces/menu.interface";
 import { capitalizeFirstLetter } from "@/helpers";
+import { EVENT_COLORS } from "@/utils/constants";
 
 import "./styles.css";
 
@@ -28,6 +30,7 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
   const { findByFilterEvent } = useEventApi();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [menusDay, setMenusDay] = useState<IEvent[]>([]);
 
   // Generar los días del mes actual
   const daysInMonth = eachDayOfInterval({
@@ -62,6 +65,7 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
         endDate: new Date(format(endDate, "yyyy-MM-dd")),
       });
 
+      setMenusDay(response);
       return response.map((event) => new Date(event.date)); // Devolver fechas con eventos
     },
     staleTime: 5 * 60 * 1000, // Mantener en caché durante 5 minutos
@@ -127,7 +131,28 @@ const Calendar = ({ getDayOfMonths }: ICalendarProps) => {
             }`}
             onClick={() => getDayOfMonths && getDayOfMonths(day)}
           >
-            {format(day, "d")}
+            <span>{format(day, "d")}</span>
+            <ul>
+              {menusDay.map((event) => {
+                return format(day, "yyyy-MM-dd") ===
+                  format(event.date, "yyyy-MM-dd")
+                  ? event?.menuPlates?.map((mp) => {
+                      return (
+                        <div className="flex mb-2" key={mp.id}>
+                          <span
+                            className={`text-xs font-medium me-2 px-2 py-0.5 rounded-3xl ${
+                              EVENT_COLORS.find(
+                                (color) => color.category === mp.category
+                              )?.color
+                            }`}
+                          ></span>
+                          <li className="text-xs text-left">{mp.plate.name}</li>
+                        </div>
+                      );
+                    })
+                  : null;
+              })}
+            </ul>
           </div>
         ))}
       </div>

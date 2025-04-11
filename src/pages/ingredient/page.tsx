@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CirclePlus } from "lucide-react";
 import { toast } from "sonner";
@@ -21,17 +22,25 @@ import {
 import MainLayout from "@/components/Layouts/MainLayout";
 
 import useIngredientApi from "@/api/ingredient.service";
+
 import { INITIAL_FORM_DATA } from "./constants";
 
 const IngredientPage = () => {
+  const navigate = useNavigate();
   const queryCLient = useQueryClient();
   const { createIngredient, findAllIngredient } = useIngredientApi();
 
   const [form, setForm] = useState(INITIAL_FORM_DATA);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  useEffect(() => {
+    navigate(`/almacen?page=${page}&limit=${limit}`);
+  }, [page, limit]);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["ingredients"],
-    queryFn: findAllIngredient,
+    queryKey: ["ingredients", page, limit],
+    queryFn: () => findAllIngredient({ page, limit }),
   });
 
   const createIngredientMutation = useMutation({
@@ -50,20 +59,22 @@ const IngredientPage = () => {
     setForm(INITIAL_FORM_DATA);
   };
 
+  const totalIngredients = useMemo(() => data?.ingredients?.length, [data]);
+
   if (isLoading) return <p>Loading...</p>;
   if (error) return <p>Error: {error.message}</p>;
 
   return (
     <MainLayout>
-      <div className="mx-4">
+      <div className="mx-3">
         <Card className="w-full my-2">
           <CardContent className="flex items-center justify-between p-2">
-            <h1 className="text-4xl font-bold">Alacena</h1>
+            <h1 className="text-2xl font-bold">
+              Almacen ({totalIngredients}) productos
+            </h1>
             <Dialog>
               <DialogTrigger asChild>
-                <Button className="cursor-pointer">
-                  <CirclePlus />
-                </Button>
+                <CirclePlus className="cursor-pointer mr-4" />
               </DialogTrigger>
               <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
@@ -78,7 +89,13 @@ const IngredientPage = () => {
           </CardContent>
         </Card>
         {data && data.ingredients && (
-          <IngredientList ingredients={data.ingredients} />
+          <IngredientList
+            ingredients={data.ingredients}
+            page={page}
+            setPage={setPage}
+            setLimit={setLimit}
+            totalPages={data.totalPages}
+          />
         )}
       </div>
     </MainLayout>

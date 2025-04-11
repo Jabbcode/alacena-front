@@ -7,11 +7,23 @@ type ResponseType = {
   ingredients?: IIngredient[];
 };
 
+type ResponseTypePagination = {
+  ingredients: IIngredient[];
+  total: number;
+  currentPage: number;
+  totalPages: number;
+};
+
 const ROUTE = "/ingredients";
 
 const useIngredientApi = () => {
-  const findAllIngredient = async (): Promise<ResponseType> => {
-    const { data } = await axiosClient.get<ResponseType>(ROUTE);
+  const findAllIngredient = async ({
+    page = 1,
+    limit = 25,
+  }): Promise<ResponseTypePagination> => {
+    const { data } = await axiosClient.get<ResponseTypePagination>(
+      `${ROUTE}?page=${page}&limit=${limit}`
+    );
     return data;
   };
 
@@ -20,15 +32,26 @@ const useIngredientApi = () => {
     return data;
   };
 
-  const removeIngredient = async (id: number): Promise<ResponseType> => {
-    const { data } = await axiosClient.delete<ResponseType>(`${ROUTE}/${id}`);
+  const renewIngredient = async (id: number): Promise<ResponseType> => {
+    const { data } = await axiosClient.patch<ResponseType>(
+      `${ROUTE}/renew/${id}`
+    );
+
+    return data;
+  };
+
+  const cancelIngredient = async (id: number): Promise<ResponseType> => {
+    const { data } = await axiosClient.patch<ResponseType>(
+      `${ROUTE}/cancel/${id}`
+    );
     return data;
   };
 
   return {
     findAllIngredient,
     createIngredient,
-    removeIngredient,
+    renewIngredient,
+    cancelIngredient,
   };
 };
 
